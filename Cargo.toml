@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 cpal = "0.17.3"
 rubato = "3.0.0"
+hound = "3.5.1"
 livekit-wakeword = { git = "https://github.com/blocksdevpro/rust-sdks"}

@@ -79,7 +79,6 @@ impl AudioAdapter {
                 && self.recording_state == RecordingState::Idle
                 && timestamp.elapsed() >= WAKEWORD_INTERVAL
             {
-                println!("processing time: {}", timestamp.elapsed().as_millis());
                 let samples = self.read();
                 tx.send(Event::Process(samples)).ok();
                 timestamp = Instant::now();
