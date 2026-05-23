@@ -1,83 +1,76 @@
 use std::sync::mpsc;
 use std::time::Instant;
 
-use crate::Event;
+use crate::audio::boris::BorisEvent;
 use crate::audio::buffer::{RecordBuffer, SlidingBuffer};
 use crate::audio::resampler::AudioResampler;
 use crate::audio::stream::AudioStream;
 use crate::constants::{SAMPLE_RATE, WAKEWORD_INTERVAL};
 
-#[derive(PartialEq)]
-enum RecordingState {
-    Idle,
-    Capturing,
-    Transcribing,
+pub enum AdapterCommand {
+    StartCapture,
+    StopCapture,
+    Reset,
 }
 
 pub struct AudioAdapter {
     stream: AudioStream,
     resampler: AudioResampler,
+    command_rx: mpsc::Receiver<AdapterCommand>,
     wakeword_buffer: SlidingBuffer,
     transcribe_buffer: RecordBuffer,
-    recording_state: RecordingState,
 }
 
 impl AudioAdapter {
-    pub fn from_stream(stream: AudioStream) -> Self {
+    pub fn from_stream(stream: AudioStream, command_rx: mpsc::Receiver<AdapterCommand>) -> Self {
         let input_rate = stream.rate();
         let resampler = AudioResampler::new(input_rate, SAMPLE_RATE);
+
         Self {
             stream,
             resampler,
+            command_rx,
             wakeword_buffer: SlidingBuffer::new(SAMPLE_RATE as usize * 2),
             transcribe_buffer: RecordBuffer::new(SAMPLE_RATE as usize * 100),
-            recording_state: RecordingState::Idle,
         }
     }
 
-    pub fn process(&mut self, tx: mpsc::Sender<Event>) {
+    pub fn process(&mut self, event_tx: mpsc::Sender<BorisEvent>) {
         self.stream.play();
         let mut timestamp = Instant::now();
+        let mut capturing = false;
 
         loop {
+            while let Ok(command) = self.command_rx.try_recv() {
+                match command {
+                    AdapterCommand::StartCapture => {
+                        capturing = true;
+                    }
+                    AdapterCommand::StopCapture => {
+                        capturing = false;
+                    }
+                    AdapterCommand::Reset => {
+                        self.transcribe_buffer.clear();
+                        timestamp = Instant::now();
+                    }
+                }
+            }
             let frame = self.stream.read();
             let processed = self.resampler.process(&frame);
 
-            self.append(&processed);
+            self.wakeword_buffer.push(&processed);
+            if capturing {
+                self.transcribe_buffer.push(&processed);
+            }
+
             if self.wakeword_buffer.ready()
-                && self.recording_state == RecordingState::Idle
+                && !capturing
                 && timestamp.elapsed() >= WAKEWORD_INTERVAL
             {
-                let samples = self.read();
-                tx.send(Event::Process(samples)).ok();
+                let samples = self.wakeword_buffer.read();
+                event_tx.send(BorisEvent::ProcessWakeword(samples)).ok();
                 timestamp = Instant::now();
             }
-        }
-    }
-
-    pub fn state_capturing(&mut self) {
-        self.transcribe_buffer.trim(SAMPLE_RATE as usize);
-        self.recording_state = RecordingState::Capturing;
-    }
-
-    pub fn state_transcribing(&mut self) {
-        self.recording_state = RecordingState::Transcribing;
-        self.transcribe_buffer.clear();
-    }
-
-    pub fn state_idle(&mut self) {
-        self.recording_state = RecordingState::Idle;
-        self.transcribe_buffer.clear();
-    }
-
-    pub fn append(&mut self, data: &[f32]) {
-        // extend the wakeword buffer and transcribe buffer if recording is active
-        self.wakeword_buffer.push(data);
-
-        if self.recording_state == RecordingState::Idle
-            || self.recording_state == RecordingState::Capturing
-        {
-            self.transcribe_buffer.push(data);
         }
     }
 
