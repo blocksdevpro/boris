@@ -78,9 +78,9 @@ impl AudioAdapter {
                 wakeword_timestamp = Instant::now();
             }
             if capturing && vad_timestamp.elapsed() >= VAD_INTERVAL {
-                let samples = self.wakeword_buffer.read();
                 // take first VAD_SAMPLE_LEN: 256 samples
-                let samples = samples.into_iter().take(VAD_SAMPLE_LEN).collect::<Vec<_>>();
+                let samples = self.wakeword_buffer.read_last(VAD_SAMPLE_LEN);
+
                 event_tx.send(BorisEvent::ProcessVAD(samples)).ok();
                 vad_timestamp = Instant::now();
             }

@@ -68,4 +68,9 @@ impl SlidingBuffer {
         let start = self.buffer.len() - size;
         self.buffer.range(start..).copied().collect()
     }
+
+    pub fn read_last(&self, n: usize) -> Vec<f32> {
+        let start = self.buffer.len().saturating_sub(n);
+        self.buffer.range(start..).copied().collect()
+    }
 }

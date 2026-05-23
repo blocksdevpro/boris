@@ -9,3 +9,5 @@ rubato = "3.0.0"
 hound = "3.5.1"
 livekit-wakeword = { git = "https://github.com/blocksdevpro/rust-sdks"}
 earshot = "1.1.0"
+whisper-rs = "0.16.0"
+whisper-rs-sys = "0.15.0"

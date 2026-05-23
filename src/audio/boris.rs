@@ -1,8 +1,12 @@
 use crate::{
-    constants::{VAD_SILENCE_DURATION, VAD_SILENCE_THRESHOLD, VAD_SPEECH_THRESHOLD},
+    audio::whisper::Whisper,
+    constants::{
+        VAD_SILENCE_DURATION, VAD_SILENCE_THRESHOLD, VAD_SPEECH_THRESHOLD, WHISPER_MODEL_PATH,
+    },
     utils::{f32_to_i16, write_wav},
 };
 use std::{
+    ops::Add,
     sync::mpsc::{self, Receiver, Sender},
     thread,
     time::{Duration, Instant},
@@ -51,6 +55,7 @@ pub struct Boris {
     wakeword_model: WakeWordModel,
     vad_model: Detector,
     vad_state: VadState,
+    whisper: Whisper,
 }
 
 impl Boris {
@@ -69,6 +74,7 @@ impl Boris {
             wakeword_model: WakeWordModel::new(&[WAKEWORD_MODEL_PATH], SAMPLE_RATE).unwrap(),
             vad_model: Detector::default(),
             vad_state,
+            whisper: Whisper::new(WHISPER_MODEL_PATH),
         }
     }
 
@@ -79,12 +85,14 @@ impl Boris {
         let samples = f32_to_i16(&samples);
         let result = self.wakeword_model.predict(&samples).unwrap();
 
+        println!("Wakeword scores: {:?}", result);
+
         for (_name, score) in result {
             if score > 0.2 {
                 println!("[boris] wakeword detected!");
                 self.state = BorisState::Recording;
                 self.vad_state.state = VadStateEnum::Speech;
-                self.vad_state.timestamp = Instant::now();
+                self.vad_state.timestamp = Instant::now() + Duration::from_millis(600);
                 self.adapter_tx.send(AdapterCommand::StartCapture).unwrap();
                 println!("[VAD] recording!");
                 break;
@@ -116,7 +124,10 @@ impl Boris {
         }
     }
 
-    fn process_transcribe(&mut self, samples: Vec<f32>) {}
+    fn process_transcribe(&mut self, samples: Vec<f32>) {
+        let result = self.whisper.transcribe(&samples);
+        println!("[TRANSCRIBE] result: {}", result);
+    }
 
     pub fn process(&mut self, mut adapter: AudioAdapter) {
         self.state = BorisState::Listening;

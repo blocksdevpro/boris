@@ -19,6 +19,13 @@ impl AudioStream {
         let samplerate = config.sample_rate();
         let channels = config.channels() as usize;
 
+        println!(
+            "Sample rate: {} channels: {}, format: {:?}",
+            samplerate,
+            channels,
+            config.sample_format()
+        );
+
         let stream = match config.sample_format() {
             cpal::SampleFormat::F32 => device.build_input_stream(
                 &config.into(),
