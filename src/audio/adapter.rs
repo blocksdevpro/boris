@@ -5,7 +5,7 @@ use crate::audio::boris::BorisEvent;
 use crate::audio::buffer::{RecordBuffer, SlidingBuffer};
 use crate::audio::resampler::AudioResampler;
 use crate::audio::stream::AudioStream;
-use crate::constants::{SAMPLE_RATE, WAKEWORD_INTERVAL};
+use crate::constants::{SAMPLE_RATE, VAD_INTERVAL, VAD_SAMPLE_LEN, WAKEWORD_INTERVAL};
 
 pub enum AdapterCommand {
     StartCapture,
@@ -37,7 +37,9 @@ impl AudioAdapter {
 
     pub fn process(&mut self, event_tx: mpsc::Sender<BorisEvent>) {
         self.stream.play();
-        let mut timestamp = Instant::now();
+        let mut wakeword_timestamp = Instant::now();
+        let mut vad_timestamp = Instant::now();
+
         let mut capturing = false;
 
         loop {
@@ -48,10 +50,14 @@ impl AudioAdapter {
                     }
                     AdapterCommand::StopCapture => {
                         capturing = false;
+                        event_tx
+                            .send(BorisEvent::ProcessTranscribe(self.transcribe_buffer.read()))
+                            .ok();
                     }
                     AdapterCommand::Reset => {
                         self.transcribe_buffer.clear();
-                        timestamp = Instant::now();
+                        wakeword_timestamp = Instant::now();
+                        vad_timestamp = Instant::now();
                     }
                 }
             }
@@ -65,11 +71,18 @@ impl AudioAdapter {
 
             if self.wakeword_buffer.ready()
                 && !capturing
-                && timestamp.elapsed() >= WAKEWORD_INTERVAL
+                && wakeword_timestamp.elapsed() >= WAKEWORD_INTERVAL
             {
                 let samples = self.wakeword_buffer.read();
                 event_tx.send(BorisEvent::ProcessWakeword(samples)).ok();
-                timestamp = Instant::now();
+                wakeword_timestamp = Instant::now();
+            }
+            if capturing && vad_timestamp.elapsed() >= VAD_INTERVAL {
+                let samples = self.wakeword_buffer.read();
+                // take first VAD_SAMPLE_LEN: 256 samples
+                let samples = samples.into_iter().take(VAD_SAMPLE_LEN).collect::<Vec<_>>();
+                event_tx.send(BorisEvent::ProcessVAD(samples)).ok();
+                vad_timestamp = Instant::now();
             }
         }
     }
