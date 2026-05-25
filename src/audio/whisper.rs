@@ -1,5 +1,7 @@
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
+use crate::constants::WHISPER_NUM_THREADS;
+
 pub struct Whisper {
     context: WhisperContext,
 }
@@ -17,10 +19,8 @@ impl Whisper {
     }
 
     pub fn transcribe(&self, samples: &[f32]) -> String {
-        let mut params = FullParams::new(SamplingStrategy::BeamSearch {
-            beam_size: 5,
-            patience: -1.0,
-        });
+        let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+        params.set_n_threads(WHISPER_NUM_THREADS);
         params.set_language(Some("en"));
         params.set_print_progress(false);
         params.set_print_realtime(false);
