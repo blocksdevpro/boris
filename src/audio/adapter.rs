@@ -86,8 +86,4 @@ impl AudioAdapter {
             }
         }
     }
-
-    pub fn read(&self) -> Vec<f32> {
-        self.wakeword_buffer.read()
-    }
 }

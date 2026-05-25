@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use serde_json::json;
 
-use crate::constants::{OPENAI_API_KEY, OPENAI_MODEL, SYSTEM_PROMPT};
+use crate::constants::{OPENAI_MODEL, SYSTEM_PROMPT};
 
 pub struct OpenAiService {
     client: reqwest::blocking::Client,
@@ -38,10 +38,8 @@ impl OpenAiService {
 
         println!("[OPENAI] took {}ms", instant.elapsed().as_millis());
 
-        if let Some(content) = json_res["choices"][0]["message"]["content"].as_str() {
-            Some(content.trim().to_string())
-        } else {
-            None
-        }
+        json_res["choices"][0]["message"]["content"]
+            .as_str()
+            .map(|content| content.trim().to_string())
     }
 }
