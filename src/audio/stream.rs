@@ -7,7 +7,6 @@ use std::sync::mpsc;
 pub struct AudioStream {
     rx: mpsc::Receiver<Vec<f32>>,
     rate: u32,
-    channels: usize,
     stream: Stream,
 }
 
@@ -32,7 +31,7 @@ impl AudioStream {
                 move |samples: &[f32], _: &cpal::InputCallbackInfo| {
                     // convert to mono by averaging samples
                     let samples = samples
-                        .chunks(channels as usize)
+                        .chunks(channels)
                         .map(|sample| sample.iter().sum::<f32>() / sample.len() as f32)
                         .collect::<Vec<f32>>();
                     tx.send(samples).ok();
@@ -44,7 +43,7 @@ impl AudioStream {
                 &config.into(),
                 move |samples: &[i16], _: &cpal::InputCallbackInfo| {
                     let samples = samples
-                        .chunks(channels as usize)
+                        .chunks(channels)
                         .map(|sample| {
                             let mono_sample = sample.iter().sum::<i16>() / sample.len() as i16;
                             mono_sample as f32 / i16::MAX as f32
@@ -62,7 +61,6 @@ impl AudioStream {
         Self {
             rx,
             rate: samplerate,
-            channels,
             stream,
         }
     }
@@ -70,9 +68,7 @@ impl AudioStream {
     pub fn rate(&self) -> u32 {
         self.rate
     }
-    pub fn channels(&self) -> usize {
-        self.channels
-    }
+
     pub fn play(&mut self) {
         self.stream.play().unwrap()
     }

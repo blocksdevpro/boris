@@ -1,6 +1,8 @@
 use rubato::audioadapter_buffers::direct::InterleavedSlice;
 use rubato::{Fft, FixedSync, Resampler};
 
+use crate::constants::CHANNELS;
+
 pub struct AudioResampler {
     resampler: Option<Fft<f32>>,
     input_rate: u32,
@@ -21,9 +23,9 @@ impl AudioResampler {
             Fft::<f32>::new(
                 self.input_rate as usize,
                 self.output_rate as usize,
-                input.len(),
-                2,
-                1,
+                input.len(), // chunks size
+                2,           // sub chunks size
+                CHANNELS,
                 FixedSync::Input,
             )
             .unwrap()
@@ -32,8 +34,9 @@ impl AudioResampler {
         let output_length = resampler.output_frames_max() * resampler.nbr_channels();
         let mut buffer = vec![0.0f32; output_length];
 
-        let input_slice = InterleavedSlice::new(input, 1, input.len()).unwrap();
-        let mut output_slice = InterleavedSlice::new_mut(&mut buffer, 1, output_length).unwrap();
+        let input_slice = InterleavedSlice::new(input, CHANNELS, input.len()).unwrap();
+        let mut output_slice =
+            InterleavedSlice::new_mut(&mut buffer, CHANNELS, output_length).unwrap();
 
         resampler
             .process_into_buffer(&input_slice, &mut output_slice, None)
