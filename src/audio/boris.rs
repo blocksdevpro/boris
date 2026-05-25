@@ -2,7 +2,7 @@ use crate::{
     audio::whisper::Whisper,
     constants::{
         self, KOKORO_MODEL_CONFIG_PATH, KOKORO_MODEL_PATH, VAD_SILENCE_DURATION,
-        VAD_SILENCE_THRESHOLD, VAD_SPEECH_THRESHOLD, WHISPER_MODEL_PATH,
+        VAD_SILENCE_THRESHOLD, VAD_SPEECH_THRESHOLD, WAKEWORD_THRESHOLD, WHISPER_MODEL_PATH,
     },
     utils::{f32_to_i16, write_wav},
 };
@@ -28,7 +28,6 @@ enum BorisState {
     Idle,
     Listening,
     Recording,
-    Transcribing,
 }
 
 #[derive(PartialEq)]
@@ -48,7 +47,6 @@ pub enum BorisEvent {
     ProcessTranscribe(Vec<f32>),
     ProcessOpenAi(String),
     ProcessTTS(String),
-    ProcessPlayTTS(Vec<f32>),
 }
 
 pub struct Boris {
@@ -97,7 +95,7 @@ impl Boris {
 
         for (_name, score) in result {
             println!("[boris] score: {}", score);
-            if score > 0.2 {
+            if score >= WAKEWORD_THRESHOLD {
                 println!("[boris] wakeword detected!");
                 self.state = BorisState::Recording;
                 self.vad_state.state = VadStateEnum::Speech;
@@ -118,17 +116,16 @@ impl Boris {
         if result > VAD_SPEECH_THRESHOLD {
             self.vad_state.state = VadStateEnum::Speech;
             self.vad_state.timestamp = Instant::now();
-        } else if result < VAD_SILENCE_THRESHOLD {
-            if self.vad_state.state == VadStateEnum::Speech
-                && self.vad_state.timestamp.elapsed() >= VAD_SILENCE_DURATION
-            {
-                // reset
-                println!("[VAD] silence detected!");
-                self.vad_state.state = VadStateEnum::Silence;
-                self.vad_state.timestamp = Instant::now();
+        } else if result < VAD_SILENCE_THRESHOLD
+            && self.vad_state.state == VadStateEnum::Speech
+            && self.vad_state.timestamp.elapsed() >= VAD_SILENCE_DURATION
+        {
+            // reset
+            println!("[VAD] silence detected!");
+            self.vad_state.state = VadStateEnum::Silence;
+            self.vad_state.timestamp = Instant::now();
 
-                self.adapter_tx.send(AdapterCommand::StopCapture).unwrap();
-            }
+            self.adapter_tx.send(AdapterCommand::StopCapture).unwrap();
         }
     }
 
@@ -159,14 +156,6 @@ impl Boris {
         write_wav("output.wav", &samples, sample_rate);
     }
 
-    fn process_play_tts(&mut self, samples: Vec<f32>) {
-        println!("[TTS] playing");
-    }
-
-    fn process_listening(&mut self) {
-        self.state = BorisState::Listening;
-    }
-
     pub fn process(&mut self, mut adapter: AudioAdapter) {
         self.state = BorisState::Listening;
 
@@ -184,7 +173,6 @@ impl Boris {
                     BorisEvent::ProcessTranscribe(samples) => self.process_transcribe(samples),
                     BorisEvent::ProcessOpenAi(input) => self.process_openai(input),
                     BorisEvent::ProcessTTS(input) => self.process_tts(input),
-                    BorisEvent::ProcessPlayTTS(samples) => self.process_play_tts(samples),
                 }
             }
         }
