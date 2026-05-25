@@ -1,12 +1,12 @@
 use crate::{
     audio::whisper::Whisper,
     constants::{
-        VAD_SILENCE_DURATION, VAD_SILENCE_THRESHOLD, VAD_SPEECH_THRESHOLD, WHISPER_MODEL_PATH,
+        self, KOKORO_MODEL_CONFIG_PATH, KOKORO_MODEL_PATH, VAD_SILENCE_DURATION,
+        VAD_SILENCE_THRESHOLD, VAD_SPEECH_THRESHOLD, WHISPER_MODEL_PATH,
     },
     utils::{f32_to_i16, write_wav},
 };
 use std::{
-    ops::Add,
     sync::mpsc::{self, Receiver, Sender},
     thread,
     time::{Duration, Instant},
@@ -19,6 +19,9 @@ use crate::{
     audio::adapter::{AdapterCommand, AudioAdapter},
     constants::{SAMPLE_RATE, WAKEWORD_MODEL_PATH},
 };
+
+use crate::services::openai;
+use crate::services::tts::TtsService;
 
 #[derive(PartialEq)]
 enum BorisState {
@@ -43,6 +46,9 @@ pub enum BorisEvent {
     ProcessWakeword(Vec<f32>),
     ProcessVAD(Vec<f32>),
     ProcessTranscribe(Vec<f32>),
+    ProcessOpenAi(String),
+    ProcessTTS(String),
+    ProcessPlayTTS(Vec<f32>),
 }
 
 pub struct Boris {
@@ -56,6 +62,8 @@ pub struct Boris {
     vad_model: Detector,
     vad_state: VadState,
     whisper: Whisper,
+    openai: openai::OpenAiService,
+    tts: TtsService,
 }
 
 impl Boris {
@@ -75,6 +83,8 @@ impl Boris {
             vad_model: Detector::default(),
             vad_state,
             whisper: Whisper::new(WHISPER_MODEL_PATH),
+            tts: TtsService::new(KOKORO_MODEL_PATH, KOKORO_MODEL_CONFIG_PATH),
+            openai: openai::OpenAiService::new(constants::OPENAI_API_KEY),
         }
     }
 
@@ -85,9 +95,8 @@ impl Boris {
         let samples = f32_to_i16(&samples);
         let result = self.wakeword_model.predict(&samples).unwrap();
 
-        println!("Wakeword scores: {:?}", result);
-
         for (_name, score) in result {
+            println!("[boris] score: {}", score);
             if score > 0.2 {
                 println!("[boris] wakeword detected!");
                 self.state = BorisState::Recording;
@@ -106,7 +115,6 @@ impl Boris {
             return;
         }
         let result = self.vad_model.predict_f32(&samples);
-        println!("[VAD] result: {}", result);
         if result > VAD_SPEECH_THRESHOLD {
             self.vad_state.state = VadStateEnum::Speech;
             self.vad_state.timestamp = Instant::now();
@@ -127,6 +135,36 @@ impl Boris {
     fn process_transcribe(&mut self, samples: Vec<f32>) {
         let result = self.whisper.transcribe(&samples);
         println!("[TRANSCRIBE] result: {}", result);
+        self.event_tx
+            .send(BorisEvent::ProcessOpenAi(result))
+            .unwrap();
+        self.adapter_tx.send(AdapterCommand::Reset).unwrap();
+    }
+
+    fn process_openai(&mut self, text: String) {
+        let result = self.openai.get_completion(&text);
+        if let Some(result) = result {
+            println!("[OPENAI] result: {}", result);
+            self.event_tx.send(BorisEvent::ProcessTTS(result)).ok();
+        };
+    }
+
+    fn process_tts(&mut self, text: String) {
+        println!("processing tts");
+        let instant = Instant::now();
+        let (samples, sample_rate) = self.tts.synthesize(&text);
+        println!("[TTS] took {} ms", instant.elapsed().as_millis());
+        println!("[TTS] result: {}, {}", sample_rate, samples.len());
+        let samples = f32_to_i16(&samples);
+        write_wav("output.wav", &samples, sample_rate);
+    }
+
+    fn process_play_tts(&mut self, samples: Vec<f32>) {
+        println!("[TTS] playing");
+    }
+
+    fn process_listening(&mut self) {
+        self.state = BorisState::Listening;
     }
 
     pub fn process(&mut self, mut adapter: AudioAdapter) {
@@ -144,6 +182,9 @@ impl Boris {
                     BorisEvent::ProcessWakeword(samples) => self.process_wakeword(samples),
                     BorisEvent::ProcessVAD(samples) => self.process_vad(samples),
                     BorisEvent::ProcessTranscribe(samples) => self.process_transcribe(samples),
+                    BorisEvent::ProcessOpenAi(input) => self.process_openai(input),
+                    BorisEvent::ProcessTTS(input) => self.process_tts(input),
+                    BorisEvent::ProcessPlayTTS(samples) => self.process_play_tts(samples),
                 }
             }
         }

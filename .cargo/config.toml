@@ -1,0 +1,5 @@
+[profile.dev]
+opt-level = 0  # keep debug speed
+
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-cpu=native", "-C", "link-arg=/MD"]

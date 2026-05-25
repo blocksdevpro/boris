@@ -10,15 +10,17 @@ use crate::audio::{
 
 mod audio;
 mod constants;
+mod services;
 mod utils;
 
 fn main() {
     let host = cpal::default_host();
-    let device = host.default_input_device().unwrap();
+    let input_device = host.default_input_device().unwrap();
+    let output_device = host.default_output_device().unwrap();
 
     let (adapter_tx, adapter_rx) = mpsc::channel::<AdapterCommand>();
 
-    let stream = AudioStream::from_device(device);
+    let stream = AudioStream::from_device(input_device);
     let adapter = AudioAdapter::from_stream(stream, adapter_rx);
     let mut boris = Boris::new(adapter_tx);
 

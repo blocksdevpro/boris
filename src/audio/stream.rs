@@ -66,6 +66,7 @@ impl AudioStream {
             stream,
         }
     }
+
     pub fn rate(&self) -> u32 {
         self.rate
     }
