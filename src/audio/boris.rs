@@ -94,14 +94,14 @@ impl Boris {
         let result = self.wakeword_model.predict(&samples).unwrap();
 
         for (_name, score) in result {
-            println!("[boris] score: {}", score);
+            log::debug!("[boris] wakeword score: {}", score);
             if score >= WAKEWORD_THRESHOLD {
-                println!("[boris] wakeword detected!");
+                log::info!("[boris] wakeword detected!");
                 self.state = BorisState::Recording;
                 self.vad_state.state = VadStateEnum::Speech;
                 self.vad_state.timestamp = Instant::now() + Duration::from_millis(600);
                 self.adapter_tx.send(AdapterCommand::StartCapture).unwrap();
-                println!("[VAD] recording!");
+                log::info!("[VAD] recording!");
                 break;
             }
         }
@@ -121,7 +121,7 @@ impl Boris {
             && self.vad_state.timestamp.elapsed() >= VAD_SILENCE_DURATION
         {
             // reset
-            println!("[VAD] silence detected!");
+            log::info!("[VAD] silence detected!");
             self.vad_state.state = VadStateEnum::Silence;
             self.vad_state.timestamp = Instant::now();
 
@@ -130,8 +130,11 @@ impl Boris {
     }
 
     fn process_transcribe(&mut self, samples: Vec<f32>) {
+        let instant = Instant::now();
         let result = self.whisper.transcribe(&samples);
-        println!("[TRANSCRIBE] result: {}", result);
+        log::debug!("[TRANSCRIBE] took {}ms", instant.elapsed().as_millis());
+        log::info!("[TRANSCRIBE] result: {}", result);
+
         self.event_tx
             .send(BorisEvent::ProcessOpenAi(result))
             .unwrap();
@@ -141,19 +144,19 @@ impl Boris {
     fn process_openai(&mut self, text: String) {
         let result = self.openai.get_completion(&text);
         if let Some(result) = result {
-            println!("[OPENAI] result: {}", result);
+            log::info!("[OPENAI] result: {}", result);
             self.event_tx.send(BorisEvent::ProcessTTS(result)).ok();
         };
     }
 
     fn process_tts(&mut self, text: String) {
-        println!("processing tts");
         let instant = Instant::now();
         let (samples, sample_rate) = self.tts.synthesize(&text);
-        println!("[TTS] took {} ms", instant.elapsed().as_millis());
-        println!("[TTS] result: {}, {}", sample_rate, samples.len());
+        log::debug!("[TTS] took {} ms", instant.elapsed().as_millis());
+        log::info!("[TTS] result: {}, {}", sample_rate, samples.len());
         let samples = f32_to_i16(&samples);
         write_wav("output.wav", &samples, sample_rate);
+        self.state = BorisState::Listening;
     }
 
     pub fn process(&mut self, mut adapter: AudioAdapter) {

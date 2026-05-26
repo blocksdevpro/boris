@@ -10,10 +10,12 @@ use crate::audio::{
 
 mod audio;
 mod constants;
+mod logger;
 mod services;
 mod utils;
 
 fn main() {
+    logger::setup_logger();
     let host = cpal::default_host();
     let input_device = host.default_input_device().unwrap();
     let _output_device = host.default_output_device().unwrap();
@@ -24,7 +26,7 @@ fn main() {
     let adapter = AudioAdapter::from_stream(stream, adapter_rx);
     let mut boris = Boris::new(adapter_tx);
 
-    println!("[boris] listening...");
+    log::info!("[boris] listening...");
 
     boris.process(adapter);
 }

@@ -36,7 +36,7 @@ impl OpenAiService {
 
         let json_res: serde_json::Value = response.json().unwrap();
 
-        println!("[OPENAI] took {}ms", instant.elapsed().as_millis());
+        log::debug!("[OPENAI] took {}ms", instant.elapsed().as_millis());
 
         json_res["choices"][0]["message"]["content"]
             .as_str()

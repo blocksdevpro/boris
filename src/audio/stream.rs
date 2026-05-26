@@ -18,7 +18,7 @@ impl AudioStream {
         let samplerate = config.sample_rate();
         let channels = config.channels() as usize;
 
-        println!(
+        log::info!(
             "Sample rate: {} channels: {}, format: {:?}",
             samplerate,
             channels,
