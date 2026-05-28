@@ -26,7 +26,5 @@ fn main() {
     let adapter = AudioAdapter::from_stream(stream, adapter_rx);
     let mut boris = Boris::new(adapter_tx);
 
-    log::info!("[boris] listening...");
-
     boris.process(adapter);
 }

@@ -1,5 +1,5 @@
 use crate::{
-    audio::whisper::Whisper,
+    audio::{filters, whisper::Whisper},
     constants::{
         self, KOKORO_MODEL_CONFIG_PATH, KOKORO_MODEL_PATH, VAD_SILENCE_DURATION,
         VAD_SILENCE_THRESHOLD, VAD_SPEECH_THRESHOLD, WAKEWORD_THRESHOLD, WHISPER_MODEL_PATH,
@@ -90,13 +90,20 @@ impl Boris {
         if self.state != BorisState::Listening {
             return;
         }
-        let samples = f32_to_i16(&samples);
-        let result = self.wakeword_model.predict(&samples).unwrap();
+
+        // apply all the filters here.
+        let hp_samples = filters::high_pass_filter(&samples);
+        let mut pre_samples = filters::pre_emphasis(&hp_samples);
+        filters::rms_normalize(&mut pre_samples, 0.15);
+
+        let samples_i16 = f32_to_i16(&pre_samples);
+
+        let result = self.wakeword_model.predict(&samples_i16).unwrap();
 
         for (_name, score) in result {
             log::debug!("[boris] wakeword score: {}", score);
             if score >= WAKEWORD_THRESHOLD {
-                log::info!("[boris] wakeword detected!");
+                log::info!("[boris] wakeword detected! score: {}", score);
                 self.state = BorisState::Recording;
                 self.vad_state.state = VadStateEnum::Speech;
                 self.vad_state.timestamp = Instant::now() + Duration::from_millis(600);
@@ -105,7 +112,7 @@ impl Boris {
                 break;
             }
         }
-        write_wav("models/audio/output.wav", &samples, SAMPLE_RATE);
+        write_wav("models/audio/output.wav", &samples_i16, SAMPLE_RATE);
     }
 
     fn process_vad(&mut self, samples: Vec<f32>) {
@@ -156,11 +163,16 @@ impl Boris {
         log::info!("[TTS] result: {}, {}", sample_rate, samples.len());
         let samples = f32_to_i16(&samples);
         write_wav("output.wav", &samples, sample_rate);
+        self.process_listening();
+    }
+
+    fn process_listening(&mut self) {
         self.state = BorisState::Listening;
+        log::info!("[boris] listening...");
     }
 
     pub fn process(&mut self, mut adapter: AudioAdapter) {
-        self.state = BorisState::Listening;
+        self.process_listening();
 
         let event_tx_clone = self.event_tx.clone();
 
