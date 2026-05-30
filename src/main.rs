@@ -18,7 +18,6 @@ fn main() {
     logger::setup_logger();
     let host = cpal::default_host();
     let input_device = host.default_input_device().unwrap();
-    let _output_device = host.default_output_device().unwrap();
 
     let (adapter_tx, adapter_rx) = mpsc::channel::<AdapterCommand>();
 

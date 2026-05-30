@@ -1,5 +1,5 @@
 use crate::{
-    audio::{filters, whisper::Whisper},
+    audio::{filters, playback::Playback, whisper::Whisper},
     constants::{
         self, KOKORO_MODEL_CONFIG_PATH, KOKORO_MODEL_PATH, VAD_SILENCE_DURATION,
         VAD_SILENCE_THRESHOLD, VAD_SPEECH_THRESHOLD, WAKEWORD_THRESHOLD, WHISPER_MODEL_PATH,
@@ -12,6 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use cpal::traits::HostTrait;
 use earshot::Detector;
 use livekit_wakeword::WakeWordModel;
 
@@ -47,6 +48,7 @@ pub enum BorisEvent {
     ProcessTranscribe(Vec<f32>),
     ProcessOpenAi(String),
     ProcessTTS(String),
+    ProcessPlayback(Vec<f32>),
 }
 
 pub struct Boris {
@@ -86,6 +88,13 @@ impl Boris {
         }
     }
 
+    fn init_playback(&self) -> Playback {
+        let host = cpal::default_host();
+        let device = host.default_output_device().unwrap();
+
+        Playback::new(device)
+    }
+
     fn process_wakeword(&mut self, samples: Vec<f32>) {
         if self.state != BorisState::Listening {
             return;
@@ -96,7 +105,7 @@ impl Boris {
         let mut pre_samples = filters::pre_emphasis(&hp_samples);
         filters::rms_normalize(&mut pre_samples, 0.15);
 
-        let samples_i16 = f32_to_i16(&pre_samples);
+        let samples_i16 = f32_to_i16(&samples);
 
         let result = self.wakeword_model.predict(&samples_i16).unwrap();
 
@@ -161,8 +170,15 @@ impl Boris {
         let (samples, sample_rate) = self.tts.synthesize(&text);
         log::debug!("[TTS] took {} ms", instant.elapsed().as_millis());
         log::info!("[TTS] result: {}, {}", sample_rate, samples.len());
-        let samples = f32_to_i16(&samples);
-        write_wav("output.wav", &samples, sample_rate);
+        self.event_tx
+            .send(BorisEvent::ProcessPlayback(samples))
+            .ok();
+    }
+
+    fn process_playback(&mut self, samples: Vec<f32>) {
+        log::info!("[PLAYBACK] playing audio.");
+        let mut playback = self.init_playback();
+        playback.play(samples);
         self.process_listening();
     }
 
@@ -188,6 +204,7 @@ impl Boris {
                     BorisEvent::ProcessTranscribe(samples) => self.process_transcribe(samples),
                     BorisEvent::ProcessOpenAi(input) => self.process_openai(input),
                     BorisEvent::ProcessTTS(input) => self.process_tts(input),
+                    BorisEvent::ProcessPlayback(samples) => self.process_playback(samples),
                 }
             }
         }
