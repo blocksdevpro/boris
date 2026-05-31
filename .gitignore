@@ -1,4 +1,11 @@
 /target
 models/
 /whisper.cpp
+
+# Secrets — never commit these
 .env
+
+# Runtime debug artifacts
+*.wav
+output.json
+output_test.wav

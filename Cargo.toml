@@ -2,6 +2,11 @@
 name = "boris"
 version = "0.1.0"
 edition = "2024"
+description = "A locally-running, offline-first voice assistant with a big personality"
+license = "MIT"
+repository = "https://github.com/blocksdevpro/boris"
+keywords = ["voice-assistant", "speech", "whisper", "tts", "wakeword"]
+categories = ["multimedia::audio"]
 
 [profile.release]
 opt-level = 3
@@ -9,6 +14,7 @@ lto = true
 codegen-units = 1
 
 [dependencies]
+dotenvy = "0.15"
 cpal = "0.17.3"
 rubato = "3.0.0"
 hound = "3.5.1"

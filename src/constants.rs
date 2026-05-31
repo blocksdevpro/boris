@@ -3,7 +3,7 @@ use std::time::Duration;
 pub const SAMPLE_RATE: u32 = 16_000;
 pub const CHANNELS: usize = 1;
 
-pub const WAKEWORD_THRESHOLD: f32 = 0.3;
+pub const WAKEWORD_THRESHOLD: f32 = 0.2;
 pub const WAKEWORD_MODEL_PATH: &str = "models/livekit/boris.onnx";
 pub const WHISPER_MODEL_PATH: &str = "models/whisper/ggml-tiny.en.bin";
 pub const WHISPER_NUM_THREADS: i32 = 8;
@@ -17,8 +17,8 @@ pub const VAD_SILENCE_THRESHOLD: f32 = 0.3;
 pub const VAD_SPEECH_THRESHOLD: f32 = 0.65;
 pub const VAD_SILENCE_DURATION: Duration = Duration::from_millis(1000);
 
-pub const OPENROUTER_MODEL: &str = "google/gemini-3-flash-preview";
-pub const OPENROUTER_API_KEY: &str = "";
+/// Default LLM model — override with the `BORIS_MODEL` env var.
+pub const OPENAI_MODEL_DEFAULT: &str = "google/gemini-3-flash-preview";
 
 pub const SYSTEM_PROMPT: &str = r#"You are Boris, a 24-year-old AI voice assistant. You are German, enthusiastic, overconfident, and hilariously dumb.
 
