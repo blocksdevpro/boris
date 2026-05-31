@@ -4,7 +4,7 @@ use crate::{
         self, KOKORO_MODEL_CONFIG_PATH, KOKORO_MODEL_PATH, VAD_SILENCE_DURATION,
         VAD_SILENCE_THRESHOLD, VAD_SPEECH_THRESHOLD, WAKEWORD_THRESHOLD, WHISPER_MODEL_PATH,
     },
-    utils::{f32_to_i16, write_wav},
+    utils::f32_to_i16,
 };
 use std::{
     sync::mpsc::{self, Receiver, Sender},
@@ -84,7 +84,7 @@ impl Boris {
             vad_state,
             whisper: Whisper::new(WHISPER_MODEL_PATH),
             tts: TtsService::new(KOKORO_MODEL_PATH, KOKORO_MODEL_CONFIG_PATH),
-            openai: openai::OpenAiService::new(constants::OPENAI_API_KEY),
+            openai: openai::OpenAiService::new(constants::OPENROUTER_API_KEY),
         }
     }
 
@@ -121,7 +121,6 @@ impl Boris {
                 break;
             }
         }
-        write_wav("models/audio/output.wav", &samples_i16, SAMPLE_RATE);
     }
 
     fn process_vad(&mut self, samples: Vec<f32>) {

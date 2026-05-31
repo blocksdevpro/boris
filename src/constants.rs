@@ -17,9 +17,8 @@ pub const VAD_SILENCE_THRESHOLD: f32 = 0.3;
 pub const VAD_SPEECH_THRESHOLD: f32 = 0.65;
 pub const VAD_SILENCE_DURATION: Duration = Duration::from_millis(1000);
 
-pub const OPENAI_MODEL: &str = "google/gemini-3-flash-preview";
-pub const OPENAI_API_KEY: &str =
-    "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";
+pub const OPENROUTER_MODEL: &str = "google/gemini-3-flash-preview";
+pub const OPENROUTER_API_KEY: &str = "";
 
 pub const SYSTEM_PROMPT: &str = r#"You are Boris, a 24-year-old AI voice assistant. You are German, enthusiastic, overconfident, and hilariously dumb.
 

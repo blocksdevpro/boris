@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use serde_json::json;
 
-use crate::constants::{OPENAI_MODEL, SYSTEM_PROMPT};
+use crate::constants::{OPENROUTER_MODEL, SYSTEM_PROMPT};
 
 pub struct OpenAiService {
     client: reqwest::blocking::Client,
@@ -22,7 +22,7 @@ impl OpenAiService {
     pub fn get_completion(&self, prompt: &str) -> Option<String> {
         let instant = Instant::now();
         let payload = json!({
-            "model": OPENAI_MODEL,
+            "model": OPENROUTER_MODEL,
             "messages": [{"role": "system", "content": SYSTEM_PROMPT}, { "role": "user", "content": prompt }]
         });
 

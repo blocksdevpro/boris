@@ -7,6 +7,7 @@ pub fn f32_to_i16(samples: &[f32]) -> Vec<i16> {
         .collect()
 }
 
+#[allow(dead_code)]
 pub fn write_wav(filename: &str, samples: &[i16], sample_rate: u32) {
     let spec = WavSpec {
         channels: 1,
