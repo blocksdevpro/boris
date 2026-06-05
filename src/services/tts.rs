@@ -16,7 +16,7 @@ impl TtsService {
 
     pub fn synthesize(&mut self, text: &str) -> (Vec<f32>, u32) {
         self.model
-            .create(text, false, Some(1), Some(1.35), None, None)
+            .create(text, false, Some(1), Some(1.4), None, None)
             .unwrap()
     }
 }

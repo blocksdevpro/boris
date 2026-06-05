@@ -10,6 +10,9 @@ pub struct Playback {
     sender: mpsc::Sender<Vec<f32>>,
 }
 
+// TODO: specify the output device
+// TODO: work on the output audio model
+
 impl Playback {
     pub fn new(device: Device) -> Self {
         let config = device.default_output_config().unwrap();
