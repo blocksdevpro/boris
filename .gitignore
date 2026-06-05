@@ -1,9 +1,25 @@
 /target
 
-# Secrets — never commit these
+# ─── Secrets — never commit ────────────────────────────────
 .env
 
-# Runtime debug artifacts
+# ─── Large model weights — download separately (see README) ─
+# Keep directory structure via .gitkeep files.
+models/**/*.onnx
+models/**/*.bin
+
+# Exception: the tiny custom wake word model is committed
+# because it's small (~160 KB) and custom-trained for this project.
+!models/livekit/boris.onnx
+
+# ─── Runtime debug artifacts ────────────────────────────────
 *.wav
 output.json
 output_test.wav
+
+# ─── IDE / OS noise ─────────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db

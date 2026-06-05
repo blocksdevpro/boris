@@ -1,0 +1,3 @@
+# Place your Piper TTS voice files here under a subfolder.
+# See the README for download instructions.
+# Expected files: nmale/nmale.onnx and nmale/nmale.onnx.json
