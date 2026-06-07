@@ -5,7 +5,7 @@ use crate::{
         KOKORO_MODEL_CONFIG_PATH, KOKORO_MODEL_PATH, VAD_SILENCE_DURATION, VAD_SILENCE_THRESHOLD,
         VAD_SPEECH_THRESHOLD, WAKEWORD_THRESHOLD, WHISPER_MODEL_PATH,
     },
-    utils::{f32_to_i16, write_wav},
+    utils::f32_to_i16,
 };
 use std::{
     sync::mpsc::{self, Receiver, RecvTimeoutError, Sender},
@@ -182,7 +182,7 @@ impl Boris {
     fn process_openai(&mut self, text: String) {
         let result = self.openai.get_completion(&text);
         if let Some(result) = result {
-            log::info!("[OPENAI] result: {}", result);
+            log::info!("[BORIS] result: {}", result);
             self.event_tx.send(BorisEvent::ProcessTTS(result)).ok();
         };
     }
@@ -201,6 +201,7 @@ impl Boris {
         log::info!("[PLAYBACK] playing audio.");
         let mut playback = self.init_playback();
         playback.play(samples);
+        playback.wait();
         self.process_listening();
     }
 
