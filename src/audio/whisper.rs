@@ -13,7 +13,7 @@ impl Whisper {
         }
         let context =
             WhisperContext::new_with_params(model_path, WhisperContextParameters::default())
-                .expect("failed to load model");
+                .expect("[ERROR] failed to load model");
 
         Self { context }
     }
@@ -26,8 +26,13 @@ impl Whisper {
         params.set_print_realtime(false);
         params.set_print_timestamps(false);
 
-        let mut state = self.context.create_state().expect("failed to create state");
-        state.full(params, samples).expect("failed to run model");
+        let mut state = self
+            .context
+            .create_state()
+            .expect("[ERROR] failed to create state");
+        state
+            .full(params, samples)
+            .expect("[ERROR] failed to run model");
 
         let mut full_transcript = String::new();
         for segment in state.as_iter() {

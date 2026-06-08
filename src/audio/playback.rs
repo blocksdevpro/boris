@@ -19,12 +19,12 @@ pub struct Playback {
 // TODO: work on the output audio model
 
 impl Playback {
-    pub fn new(device: Device) -> Self {
+    pub fn new(device: Device, sample_rate: u32) -> Self {
         log::debug!("device: {:?}", device.description());
 
         let stream_config = StreamConfig {
             channels: 1,
-            sample_rate: 22050,
+            sample_rate,
             buffer_size: BufferSize::Default,
         };
 
@@ -72,7 +72,7 @@ impl Playback {
                 |err| eprintln!("stream error: {err}"),
                 None,
             )
-            .unwrap();
+            .expect("[ERROR] failed to build audio stream!");
         Self {
             stream,
             sender,
@@ -81,7 +81,9 @@ impl Playback {
     }
 
     pub fn play(&mut self, samples: Vec<f32>) {
-        self.stream.play().unwrap();
+        self.stream
+            .play()
+            .expect("[ERROR] failed to start playback stream!");
         self.sender.send(samples).ok();
     }
 

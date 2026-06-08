@@ -21,7 +21,9 @@ fn main() {
     let config = config::Config::load();
 
     let host = cpal::default_host();
-    let input_device = host.default_input_device().unwrap();
+    let input_device = host
+        .default_input_device()
+        .expect("[ERROR] failed to get default input device!");
 
     let (adapter_tx, adapter_rx) = mpsc::channel::<AdapterCommand>();
 

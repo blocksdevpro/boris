@@ -7,8 +7,8 @@ pub const WAKEWORD_THRESHOLD: f32 = 0.2;
 pub const WAKEWORD_MODEL_PATH: &str = "models/livekit/boris.onnx";
 pub const WHISPER_MODEL_PATH: &str = "models/whisper/ggml-tiny.en.bin";
 pub const WHISPER_NUM_THREADS: i32 = 8;
-pub const KOKORO_MODEL_PATH: &str = "models/piper/nmale/nmale.onnx";
-pub const KOKORO_MODEL_CONFIG_PATH: &str = "models/piper/nmale/nmale.onnx.json";
+pub const PIPER_MODEL_PATH: &str = "models/piper/nmale/nmale.onnx";
+pub const PIPER_MODEL_CONFIG_PATH: &str = "models/piper/nmale/nmale.onnx.json";
 
 pub const WAKEWORD_INTERVAL: Duration = Duration::from_millis(80);
 pub const VAD_INTERVAL: Duration = Duration::from_millis(40);

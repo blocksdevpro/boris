@@ -6,7 +6,7 @@ use crate::constants::OPENAI_MODEL_DEFAULT;
 ///   BORIS_API_KEY — your OpenRouter API key
 ///
 /// Optional env vars (defaults shown):
-///   BORIS_MODEL   — LLM model slug (default: google/gemini-2.5-flash-preview)
+///   BORIS_MODEL   — LLM model slug (default: google/gemini-3-flash-preview)
 ///   BORIS_BASE_URL — API base URL (default: https://openrouter.ai/api/v1)
 pub struct Config {
     pub api_key: String,
@@ -30,8 +30,8 @@ impl Config {
             std::process::exit(1);
         });
 
-        let model = std::env::var("BORIS_MODEL")
-            .unwrap_or_else(|_| OPENAI_MODEL_DEFAULT.to_string());
+        let model =
+            std::env::var("BORIS_MODEL").unwrap_or_else(|_| OPENAI_MODEL_DEFAULT.to_string());
 
         let base_url = std::env::var("BORIS_BASE_URL")
             .unwrap_or_else(|_| "https://openrouter.ai/api/v1".to_string());

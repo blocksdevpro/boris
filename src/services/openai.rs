@@ -41,9 +41,11 @@ impl OpenAiService {
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&payload)
             .send()
-            .unwrap();
+            .expect("[ERROR] failed to send request to OpenAI!");
 
-        let json_res: serde_json::Value = response.json().unwrap();
+        let json_res: serde_json::Value = response
+            .json()
+            .expect("[ERROR] failed to parse response from OpenAI!");
 
         log::debug!("[OPENAI] took {}ms", instant.elapsed().as_millis());
 

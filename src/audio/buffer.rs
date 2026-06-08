@@ -27,13 +27,6 @@ impl RecordBuffer {
         }
     }
 
-    // trim should trim the buffer's oldest samples and just keep the most recent ones (up to the capacity)
-    // pub fn trim(&mut self, size: usize) {
-    //     while self.buffer.len() > size {
-    //         self.buffer.pop_front();
-    //     }
-    // }
-
     pub fn read(&self) -> Vec<f32> {
         self.buffer.iter().copied().collect()
     }
