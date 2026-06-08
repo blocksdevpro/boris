@@ -72,7 +72,7 @@ impl Playback {
                 |err| eprintln!("stream error: {err}"),
                 None,
             )
-            .unwrap();
+            .expect("[ERROR] failed to build audio stream!");
         Self {
             stream,
             sender,
@@ -81,7 +81,9 @@ impl Playback {
     }
 
     pub fn play(&mut self, samples: Vec<f32>) {
-        self.stream.play().unwrap();
+        self.stream
+            .play()
+            .expect("[ERROR] failed to start playback stream!");
         self.sender.send(samples).ok();
     }
 

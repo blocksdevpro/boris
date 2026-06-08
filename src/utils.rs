@@ -15,8 +15,11 @@ pub fn write_wav(filename: &str, samples: &[i16], sample_rate: u32) {
         bits_per_sample: 16,
         sample_format: SampleFormat::Int,
     };
-    let mut writer = WavWriter::create(filename, spec).unwrap();
+    let mut writer =
+        WavWriter::create(filename, spec).expect("[ERROR] failed to create WAV writer!");
     for &sample in samples {
-        writer.write_sample(sample).unwrap();
+        writer
+            .write_sample(sample)
+            .expect("[ERROR] failed to write sample to WAV writer!");
     }
 }

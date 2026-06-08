@@ -14,7 +14,9 @@ impl AudioStream {
     pub fn from_device(device: Device) -> Self {
         let (tx, rx) = mpsc::channel();
 
-        let config = device.default_input_config().unwrap();
+        let config = device
+            .default_input_config()
+            .expect("[ERROR] failed to get default input config!");
         let samplerate = config.sample_rate();
         let channels = config.channels() as usize;
 
@@ -55,9 +57,9 @@ impl AudioStream {
                 None,
             ),
 
-            _ => panic!("Unsupported sample format"),
+            format => panic!("[ERROR] unsupported sample format: {:?}", format),
         }
-        .unwrap();
+        .expect("[ERROR] failed to build input stream!");
         Self {
             rx,
             rate: samplerate,
@@ -70,10 +72,10 @@ impl AudioStream {
     }
 
     pub fn play(&mut self) {
-        self.stream.play().unwrap()
+        self.stream.play().expect("[ERROR] failed to play stream!")
     }
 
     pub fn read(&mut self) -> Vec<f32> {
-        self.rx.recv().unwrap()
+        self.rx.recv().expect("[ERROR] failed to read stream!")
     }
 }

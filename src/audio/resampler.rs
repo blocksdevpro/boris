@@ -28,15 +28,16 @@ impl AudioResampler {
                 CHANNELS,
                 FixedSync::Input,
             )
-            .unwrap()
+            .expect("[ERROR] failed to create resampler!")
         });
 
         let output_length = resampler.output_frames_max() * resampler.nbr_channels();
         let mut buffer = vec![0.0f32; output_length];
 
-        let input_slice = InterleavedSlice::new(input, CHANNELS, input.len()).unwrap();
-        let mut output_slice =
-            InterleavedSlice::new_mut(&mut buffer, CHANNELS, output_length).unwrap();
+        let input_slice = InterleavedSlice::new(input, CHANNELS, input.len())
+            .expect("[ERROR] failed to create input slice for resampling!");
+        let mut output_slice = InterleavedSlice::new_mut(&mut buffer, CHANNELS, output_length)
+            .expect("[ERROR] failed to create output slice for resampling!");
 
         resampler
             .process_into_buffer(&input_slice, &mut output_slice, None)

@@ -2,7 +2,7 @@ use crate::{
     audio::{filters, playback::Playback, whisper::Whisper},
     config::Config,
     constants::{
-        KOKORO_MODEL_CONFIG_PATH, KOKORO_MODEL_PATH, VAD_SILENCE_DURATION, VAD_SILENCE_THRESHOLD,
+        PIER_MODEL_CONFIG_PATH, PIER_MODEL_PATH, VAD_SILENCE_DURATION, VAD_SILENCE_THRESHOLD,
         VAD_SPEECH_THRESHOLD, WAKEWORD_THRESHOLD, WHISPER_MODEL_PATH,
     },
     utils::f32_to_i16,
@@ -84,19 +84,22 @@ impl Boris {
             event_rx,
             adapter_tx,
             state: BorisState::Idle,
-            wakeword_model: WakeWordModel::new(&[WAKEWORD_MODEL_PATH], SAMPLE_RATE).unwrap(),
+            wakeword_model: WakeWordModel::new(&[WAKEWORD_MODEL_PATH], SAMPLE_RATE)
+                .expect("[ERROR] failed to load wakeworld model!"),
             wakeword_score_ema: 0.0,
             vad_model: Detector::default(),
             vad_state,
             whisper: Whisper::new(WHISPER_MODEL_PATH),
-            tts: TtsService::new(KOKORO_MODEL_PATH, KOKORO_MODEL_CONFIG_PATH),
+            tts: TtsService::new(PIER_MODEL_PATH, PIER_MODEL_CONFIG_PATH),
             openai: openai::OpenAiService::new(&config.api_key, &config.model, &config.base_url),
         }
     }
 
     fn init_playback(&self) -> Playback {
         let host = cpal::default_host();
-        let device = host.default_output_device().unwrap();
+        let device = host
+            .default_output_device()
+            .expect("[ERROR] failed to load default output device.");
         Playback::new(device)
     }
 
@@ -112,7 +115,10 @@ impl Boris {
 
         let samples_i16 = f32_to_i16(&processed);
 
-        let result = self.wakeword_model.predict(&samples_i16).unwrap();
+        let result = self
+            .wakeword_model
+            .predict(&samples_i16)
+            .expect("[ERROR] failed to predict wakeword!");
 
         for (_name, raw_score) in result {
             // EMA smoothing: accumulate weak per-frame scores across time.
@@ -141,7 +147,9 @@ impl Boris {
                 self.state = BorisState::Recording;
                 self.vad_state.state = VadStateEnum::Speech;
                 self.vad_state.timestamp = Instant::now() + Duration::from_millis(600);
-                self.adapter_tx.send(AdapterCommand::StartCapture).unwrap();
+                self.adapter_tx
+                    .send(AdapterCommand::StartCapture)
+                    .expect("[ERROR] failed to send start capture command!");
                 log::info!("[VAD] recording!");
                 break;
             }
@@ -163,7 +171,9 @@ impl Boris {
             log::info!("[VAD] silence detected!");
             self.vad_state.state = VadStateEnum::Silence;
             self.vad_state.timestamp = Instant::now();
-            self.adapter_tx.send(AdapterCommand::StopCapture).unwrap();
+            self.adapter_tx
+                .send(AdapterCommand::StopCapture)
+                .expect("[ERROR] failed to send stop capture command!");
         }
     }
 
@@ -175,8 +185,10 @@ impl Boris {
 
         self.event_tx
             .send(BorisEvent::ProcessOpenAi(result))
-            .unwrap();
-        self.adapter_tx.send(AdapterCommand::Reset).unwrap();
+            .expect("[ERROR] failed to send openai result!");
+        self.adapter_tx
+            .send(AdapterCommand::Reset)
+            .expect("[ERROR] failed to send reset command!");
     }
 
     fn process_openai(&mut self, text: String) {

@@ -10,14 +10,15 @@ impl TtsService {
     pub fn new(model_path: &str, config_path: &str) -> Self {
         let model_path = PathBuf::from(model_path);
         let config_path = PathBuf::from(config_path);
-        let piper = Piper::new(&model_path, &config_path).expect("failed to create piper model");
+        let piper =
+            Piper::new(&model_path, &config_path).expect("[ERROR] failed to create piper model");
         Self { model: piper }
     }
 
     pub fn synthesize(&mut self, text: &str) -> (Vec<f32>, u32) {
         self.model
             .create(text, false, Some(1), Some(1.4), None, None)
-            .unwrap()
+            .expect("[ERROR] failed to synthesize text!")
     }
 }
 
@@ -31,7 +32,7 @@ mod tests {
 
     use crate::{
         audio::playback::Playback,
-        constants::{KOKORO_MODEL_CONFIG_PATH, KOKORO_MODEL_PATH},
+        constants::{PIER_MODEL_CONFIG_PATH, PIER_MODEL_PATH},
         utils::{f32_to_i16, write_wav},
     };
 
@@ -39,7 +40,7 @@ mod tests {
 
     #[test]
     fn test_synthesize() {
-        let mut tts = TtsService::new(KOKORO_MODEL_PATH, KOKORO_MODEL_CONFIG_PATH);
+        let mut tts = TtsService::new(PIER_MODEL_PATH, PIER_MODEL_CONFIG_PATH);
         let (audio, sample_rate) = tts.synthesize("Broda, Patra is epic, you gotta go there. The turtles will love you, probably.
 
         June is super hot because, you know, the sun moves closer. My sensors are lagging, but you should packs some socks!");
@@ -47,11 +48,13 @@ mod tests {
 
         // write the audio samples in a json file, raw.
         //
-        let mut file = File::create("output.json").unwrap();
-        serde_json::to_writer(&mut file, &audio).unwrap();
+        let mut file = File::create("output.json").expect("[ERROR] failed to create output.json!");
+        serde_json::to_writer(&mut file, &audio).expect("[ERROR] failed to write to output.json!");
 
         let host = cpal::default_host();
-        let output_device = host.default_output_device().unwrap();
+        let output_device = host
+            .default_output_device()
+            .expect("[ERROR] failed to get default output device!");
         let mut playback = Playback::new(output_device);
 
         let audio_length = audio.len() as u64 / sample_rate as u64;
