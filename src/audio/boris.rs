@@ -27,7 +27,6 @@ use crate::services::tts::TtsService;
 
 #[derive(PartialEq)]
 enum BorisState {
-    Idle,
     Listening,
     Recording,
 }
@@ -83,9 +82,9 @@ impl Boris {
             event_tx,
             event_rx,
             adapter_tx,
-            state: BorisState::Idle,
+            state: BorisState::Listening,
             wakeword_model: WakeWordModel::new(&[WAKEWORD_MODEL_PATH], SAMPLE_RATE)
-                .expect("[ERROR] failed to load wakeworld model!"),
+                .expect("[ERROR] failed to load wakeword model!"),
             wakeword_score_ema: 0.0,
             vad_model: Detector::default(),
             vad_state,

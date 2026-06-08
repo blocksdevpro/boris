@@ -41,7 +41,7 @@ impl AudioResampler {
 
         resampler
             .process_into_buffer(&input_slice, &mut output_slice, None)
-            .expect("[Error] resampling failed!");
+            .expect("[ERROR] resampling failed!");
 
         buffer
     }
