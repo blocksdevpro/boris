@@ -32,7 +32,7 @@ mod tests {
 
     use crate::{
         audio::playback::Playback,
-        constants::{PIER_MODEL_CONFIG_PATH, PIER_MODEL_PATH},
+        constants::{PIPER_MODEL_CONFIG_PATH, PIPER_MODEL_PATH},
         utils::{f32_to_i16, write_wav},
     };
 
@@ -40,7 +40,7 @@ mod tests {
 
     #[test]
     fn test_synthesize() {
-        let mut tts = TtsService::new(PIER_MODEL_PATH, PIER_MODEL_CONFIG_PATH);
+        let mut tts = TtsService::new(PIPER_MODEL_PATH, PIPER_MODEL_CONFIG_PATH);
         let (audio, sample_rate) = tts.synthesize("Broda, Patra is epic, you gotta go there. The turtles will love you, probably.
 
         June is super hot because, you know, the sun moves closer. My sensors are lagging, but you should packs some socks!");
@@ -55,7 +55,7 @@ mod tests {
         let output_device = host
             .default_output_device()
             .expect("[ERROR] failed to get default output device!");
-        let mut playback = Playback::new(output_device);
+        let mut playback = Playback::new(output_device, sample_rate);
 
         let audio_length = audio.len() as u64 / sample_rate as u64;
 
